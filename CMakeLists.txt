@@ -43,4 +43,5 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 ## Subdirectories ##
 ####################
 
+add_subdirectory(third-party)
 add_subdirectory(src/aurora)

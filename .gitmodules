@@ -1,0 +1,9 @@
+[submodule ".\\third-party\\boost-cmake"]
+	path = .\\third-party\\boost-cmake
+	url = git://github.com/Orphis/boost-cmake.git
+[submodule ".\\third-party\\zlib"]
+	path = .\\third-party\\zlib
+	url = git://github.com/madler/zlib.git
+[submodule ".\\third-party\\bzip2"]
+	path = .\\third-party\\bzip2
+	url = git://github.com/sergiud/bzip2
