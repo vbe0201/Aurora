@@ -30,3 +30,25 @@
 *.exe
 *.out
 *.app
+
+# Editor files
+/.vs/
+/.vscode/
+/.idea/
+/cmake-build-*/
+CMakeLists.txt.user
+CMakeLists.txt.user.*
+CMakeSettings.json
+
+# CMake helpers
+*CMakeFiles*
+CMakeCache.txt
+*cmake_install.cmake*
+Makefile*
+
+# Miscellaneous system files
+.DS_Store
+*~
+._*
+.env
+Thumbs.db
