@@ -5,8 +5,8 @@ speed and correctness.
 
 A lot of effort is being put into mimicking the behavior of the official clients as accurately
 as possible to minimize the ban risk for users, while also improving the user experience at
-those spots where the official clients fail, including UI customization options and better
-theming and resource consumption.
+those spots where the official clients fail, including UI customization options, better
+theming and lower resource consumption.
 
 ## Disclaimer
 
