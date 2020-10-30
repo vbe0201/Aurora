@@ -11,10 +11,6 @@ target_sources(AuroraGateway
         gateway.cc
     )
 
-target_include_directories(AuroraGateway
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>
-    )
+target_include_directories(AuroraGateway PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
-target_link_libraries(AuroraGateway PUBLIC Boost::boost)
+target_link_libraries(AuroraGateway PUBLIC Boost::beast)

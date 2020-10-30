@@ -30,5 +30,30 @@ add_subdirectory(bzip2)
 set(BZIP2_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bzip2)
 set(BZIP2_LIBRARIES libz2)
 
+# OpenSSL
+find_package(OpenSSL REQUIRED)
+
 # boost-cmake
 add_subdirectory(boost-cmake)
+
+# Boost.ASIO
+add_library(Boost_asio INTERFACE)
+add_library(Boost::asio ALIAS Boost_asio)
+if(WIN32)
+    set(_asio_platform_libs ws2_32)
+endif()
+target_link_libraries(Boost_asio
+    INTERFACE
+        Boost::boost
+        Boost::system
+        ${_asio_platform_libs}
+        OpenSSL::SSL
+    )
+
+# Boost.Beast
+add_library(Boost_beast INTERFACE)
+add_library(Boost::beast ALIAS Boost_beast)
+target_link_libraries(Boost_beast
+    INTERFACE
+        Boost::asio
+    )
