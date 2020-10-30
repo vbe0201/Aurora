@@ -36,6 +36,7 @@ namespace gateway {
 
 // Abbreviate the boost namespaces.
 namespace beast = boost::beast;
+namespace http = beast::http;
 namespace net = boost::asio;
 namespace websocket = beast::websocket;
 
@@ -53,12 +54,18 @@ namespace websocket = beast::websocket;
  */
 class Session : public std::enable_shared_from_this<Session> {
  public:
-  explicit Session(boost::asio::io_context& io, boost::asio::ssl::context& ssl);
+  explicit Session(net::io_context& io, net::ssl::context& ssl);
+
+  ~Session();
+
+  void Connect(std::string& hostname, const std::string& port = "443");
+
+  void Disconnect(const websocket::close_code& code);
 
  private:
-  boost::asio::ip::tcp::resolver resolver_;
+  net::ip::tcp::resolver resolver_;
   websocket::stream<beast::ssl_stream<net::ip::tcp::socket>> websocket_;
-  boost::beast::flat_buffer buffer_;
+  beast::flat_buffer buffer_;
 };
 
 }  // namespace gateway
