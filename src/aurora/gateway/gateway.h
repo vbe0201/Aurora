@@ -58,8 +58,17 @@ class Session : public std::enable_shared_from_this<Session> {
 
   ~Session();
 
+  /**
+   * @brief Establishes a WebSocket connection to the given host.
+   * @param hostname The hostname to resolve.
+   * @param port The port to use. If unsure, leave the default value.
+   */
   void Connect(std::string& hostname, const std::string& port = "443");
 
+  /**
+   * @brief Closes an active WebSocket connection.
+   * @param code The close code to send to the server.
+   */
   void Disconnect(const websocket::close_code& code);
 
  private:
