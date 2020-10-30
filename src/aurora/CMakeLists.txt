@@ -22,6 +22,8 @@ if(MSVC)
         /MP
         /permissive-
         /EHsc
+        /volatile:iso
+        /Zc:inline
     )
 else()
     # Add correct libc++ stdlib definition for Clang on Apple platforms.
@@ -32,8 +34,14 @@ else()
     # General compilation options.
     add_compile_options(
         -Wall
-        -Werror
-        -fexceptions
+        -Werror=implicit-fallthrough
+        -Werror=missing-declarations
+        -Werror=reorder
+        -Werror=unused-result
+        -Wextra
+        -Wmissing-declarations
+        -Wno-attributes
+        -Wno-unused-parameter
     )
 endif()
 
