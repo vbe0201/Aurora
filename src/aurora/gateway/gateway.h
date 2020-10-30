@@ -75,6 +75,16 @@ class Session : public std::enable_shared_from_this<Session> {
   net::ip::tcp::resolver resolver_;
   websocket::stream<beast::ssl_stream<net::ip::tcp::socket>> websocket_;
   beast::flat_buffer buffer_;
+
+  /**
+   * @brief A callback that is dispatched when a message has been received from
+   * the host.
+   * @param error Potential errors that may have occurred during the read.
+   * @param bytes_read The total amount of bytes that have been read.
+   *
+   * @warning Never call this function manually!
+   */
+  void OnMessage(beast::error_code error, std::size_t bytes_read);
 };
 
 }  // namespace gateway

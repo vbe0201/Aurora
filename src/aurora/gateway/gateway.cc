@@ -15,6 +15,7 @@
 
 #include "gateway.h"
 
+#include <iostream>
 #include <string>
 
 namespace aurora {
@@ -60,12 +61,33 @@ void Session::Connect(std::string &hostname, const std::string &port) {
   // Perform the WebSocket handshake.
   // TODO: Use a proper target for the handshake.
   websocket_.handshake(hostname, "/");
+
+  // Start listening for messages from the server.
+  websocket_.async_read(buffer_, beast::bind_front_handler(&Session::OnMessage,
+                                                           shared_from_this()));
 }
 
 void Session::Disconnect(const websocket::close_code &code) {
   if (websocket_.is_open()) {
     websocket_.close(code);
   }
+}
+
+void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
+  // TODO: Handle errors accordingly.
+  if (error) {}
+
+  std::cout << beast::make_printable(buffer_.data()) << std::endl;
+
+  // TODO: Validate and uncompress zlib data.
+
+  // TODO: Unpack Erlang Term Format message.
+
+  // TODO: Handle the received opcode accordingly.
+
+  // Continue listening for more messages.
+  //websocket_.async_read(buffer_, beast::bind_front_handler(&Session::OnMessage,
+  //                                                         shared_from_this()));
 }
 
 }  // namespace gateway
