@@ -86,6 +86,8 @@ Aurora is built on top of the following open source tools and libraries:
 
 * CMake ([New BSD License](https://github.com/Kitware/CMake/blob/master/Copyright.txt))
 
+* nlohmann/json ([MIT License](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT))
+
 * OpenSSL ([OpenSSL License](https://www.openssl.org/source/license.html))
 
 * zlib ([zlib License](https://www.zlib.net/zlib_license.html))
