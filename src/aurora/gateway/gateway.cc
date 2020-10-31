@@ -18,6 +18,8 @@
 #include <iostream>
 #include <string>
 
+#include "nlohmann/json.hpp"
+
 namespace aurora {
 namespace gateway {
 
@@ -75,17 +77,26 @@ void Session::Disconnect(const websocket::close_code &code) {
 
 void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
   // TODO: Handle errors accordingly.
-  if (error) {}
-
-  std::cout << beast::make_printable(buffer_.data()) << std::endl;
+  if (error) {
+  }
 
   // TODO: Validate and uncompress zlib data.
 
   // TODO: Unpack Erlang Term Format message.
+  nlohmann::json payload;
+  {
+    std::ostringstream stream;
+    stream << beast::make_printable(buffer_.data());
+
+    payload = nlohmann::json::parse(stream.str());
+  }
+
+  std::cout << payload << std::endl;
 
   // TODO: Handle the received opcode accordingly.
 
-  // Continue listening for more messages.
+  // Clean the buffer and continue listening for more messages.
+  buffer_.clear();
   //websocket_.async_read(buffer_, beast::bind_front_handler(&Session::OnMessage,
   //                                                         shared_from_this()));
 }

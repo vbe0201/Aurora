@@ -57,3 +57,7 @@ target_link_libraries(Boost_beast
     INTERFACE
         Boost::asio
     )
+
+# json
+set(JSON_BuildTests OFF CACHE INTERNAL "Build json without tests.")
+add_subdirectory(json EXCLUDE_FROM_ALL)

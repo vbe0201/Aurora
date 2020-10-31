@@ -7,3 +7,6 @@
 [submodule "third-party/bzip2"]
 	path = third-party/bzip2
 	url = git://github.com/sergiud/bzip2
+[submodule "third-party/json"]
+	path = third-party/json
+	url = git://github.com/nlohmann/json
