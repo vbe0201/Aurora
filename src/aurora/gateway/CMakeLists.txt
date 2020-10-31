@@ -14,5 +14,5 @@ target_sources(AuroraGateway
 
 target_include_directories(AuroraGateway PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
-target_link_libraries(AuroraGateway PUBLIC Boost::beast)
+target_link_libraries(AuroraGateway PUBLIC aurora::common Boost::beast)
 target_link_libraries(AuroraGateway PRIVATE nlohmann_json::nlohmann_json)

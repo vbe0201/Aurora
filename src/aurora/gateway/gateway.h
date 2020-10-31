@@ -31,6 +31,8 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 
+#include "common/defines.h"
+
 namespace aurora {
 namespace gateway {
 
@@ -57,6 +59,9 @@ class Session : public std::enable_shared_from_this<Session> {
   explicit Session(net::io_context& io, net::ssl::context& ssl);
 
   ~Session();
+
+  AURORA_DISALLOW_COPY_AND_ASSIGN(Session);
+  AURORA_DISALLOW_MOVE(Session);
 
   /**
    * @brief Establishes a WebSocket connection to the given host.

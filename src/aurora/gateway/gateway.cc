@@ -76,6 +76,8 @@ void Session::Disconnect(const websocket::close_code &code) {
 }
 
 void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
+  AURORA_UNUSED(bytes_read);
+
   // TODO: Handle errors accordingly.
   if (error) {
   }
@@ -83,13 +85,12 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
   // TODO: Validate and uncompress zlib data.
 
   // TODO: Unpack Erlang Term Format message.
-  nlohmann::json payload;
-  {
+  nlohmann::json payload = [this]() {
     std::ostringstream stream;
     stream << beast::make_printable(buffer_.data());
 
-    payload = nlohmann::json::parse(stream.str());
-  }
+    return nlohmann::json::parse(stream.str());
+  }();
 
   std::cout << payload << std::endl;
 
