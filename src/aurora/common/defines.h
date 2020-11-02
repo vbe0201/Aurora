@@ -48,7 +48,7 @@
 // signature, if possible, and can be used to dynamically retrieve this
 // information in functions.
 #if defined(__PRETTY_FUNCTION__)
-#define AURORA_CURRENT_FUNCTION __FUNCTION__
+#define AURORA_CURRENT_FUNCTION __PRETTY_FUNCTION__
 #elif defined(__FUNCSIG__)
 #define AURORA_CURRENT_FUNCTION __FUNCSIG__
 #else
