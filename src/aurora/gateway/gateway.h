@@ -82,6 +82,7 @@ class Session : public std::enable_shared_from_this<Session> {
   beast::flat_buffer buffer_;
   boost::asio::io_context &io_;
   int heartbeat_interval_;
+  bool did_ack_heartbeat_ = true;
 
   /**
    * @brief A callback that is dispatched when a message has been received from
@@ -116,7 +117,7 @@ class Session : public std::enable_shared_from_this<Session> {
   /**
    * @brief Automatically sends a heartbeat in regular intervals
    */
-  void HeartbeatTask() AURORA_NORETURN;
+  void HeartbeatTask();
 };
 
 }  // namespace gateway
