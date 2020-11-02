@@ -80,6 +80,8 @@ class Session : public std::enable_shared_from_this<Session> {
   net::ip::tcp::resolver resolver_;
   websocket::stream<beast::ssl_stream<net::ip::tcp::socket>> websocket_;
   beast::flat_buffer buffer_;
+  boost::asio::io_context &io_;
+  int heartbeat_interval_;
 
   /**
    * @brief A callback that is dispatched when a message has been received from
@@ -90,6 +92,31 @@ class Session : public std::enable_shared_from_this<Session> {
    * @warning Never call this function manually!
    */
   void OnMessage(beast::error_code error, std::size_t bytes_read);
+
+  /**
+   * @brief Generic error handler.
+   */
+  void OnError(beast::error_code error);
+
+  /**
+   * @brief A callback that is dispatched once the gateway sends the initial
+   * hello payload
+   * @param heartbeat_interval Time in ms to wait between sending heartbeat
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnHello(int heartbeat_interval);
+
+  /**
+   * @brief Send a generic heartbeat payload
+   */
+  void SendHeartbeat();
+
+  /**
+   * @brief Automatically sends a heartbeat in regular intervals
+   */
+  void HeartbeatTask() AURORA_NORETURN;
 };
 
 }  // namespace gateway

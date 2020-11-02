@@ -24,7 +24,7 @@ namespace aurora {
 namespace gateway {
 
 Session::Session(net::io_context &io, net::ssl::context &ssl)
-    : resolver_(net::make_strand(io)), websocket_(net::make_strand(io), ssl) {}
+    : resolver_(net::make_strand(io)), websocket_(net::make_strand(io), ssl), io_(io) {}
 
 Session::~Session() {
   try {
@@ -96,10 +96,47 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
 
   // TODO: Handle the received opcode accordingly.
 
+  if (payload["op"] == 10)
+    OnHello(payload["d"]["heartbeat_interval"]);
+
   // Clean the buffer and continue listening for more messages.
   buffer_.clear();
   //websocket_.async_read(buffer_, beast::bind_front_handler(&Session::OnMessage,
   //                                                         shared_from_this()));
+}
+
+void Session::OnError(beast::error_code error) {
+  if (!error) return;
+  // TODO: Reconnect
+  std::cerr << "Closing connection due to internal error.";
+
+  Disconnect(websocket::close_code(4000));
+}
+
+void Session::OnHello(int heartbeat_interval) {
+  heartbeat_interval_ = heartbeat_interval;
+  HeartbeatTask();
+}
+
+void Session::SendHeartbeat() {
+  nlohmann::json payload;
+  payload["op"] = 1;
+  payload["d"] = 251;
+  websocket_.async_write(
+      net::buffer(payload.dump()), [this](beast::error_code const &ec,
+                             std::size_t bytes_transferred) { OnError(ec); });
+}
+void Session::HeartbeatTask() {
+  boost::asio::steady_timer t(io_, boost::asio::chrono::seconds(heartbeat_interval_));
+  while (true) {
+    t.async_wait([this](const boost::system::error_code& error) {
+      if (error) {
+        OnError(error);
+      } else {
+        SendHeartbeat();
+      }
+    });
+  }
 }
 
 }  // namespace gateway
