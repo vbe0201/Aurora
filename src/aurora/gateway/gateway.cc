@@ -17,8 +17,7 @@
 
 #include <iostream>
 #include <string>
-
-#include "nlohmann/json.hpp"
+#include <utility>
 
 namespace aurora {
 namespace gateway {
@@ -35,7 +34,9 @@ Session::~Session() {
   }
 }
 
-void Session::Connect(std::string &hostname, const std::string &port) {
+void Session::Connect(std::string token, std::string &hostname,
+                      const std::string &port) {
+  token_ = std::move(token);
   // Resolve the supplied host and connect to it.
   const auto results = resolver_.resolve(hostname, port);
   auto endpoint = net::connect(beast::get_lowest_layer(websocket_), results);
@@ -77,6 +78,10 @@ void Session::Disconnect(const websocket::close_code &code) {
   }
 }
 
+void Session::SubscribeTo(uint16_t intents) { intents_ |= intents; }
+
+void Session::UnsubscribeFrom(uint16_t intents) { intents_ &= ~intents; }
+
 void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
   AURORA_UNUSED(bytes_read);
 
@@ -92,7 +97,8 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
     std::ostringstream stream;
     stream << beast::make_printable(buffer_.data());
 
-    return nlohmann::json::parse(stream.str());
+    std::string s = stream.str();
+    return nlohmann::json::parse(s);
   }();
 
   std::cout << payload << std::endl;
@@ -113,7 +119,23 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
                                                            shared_from_this()));
 }
 
-void Session::OnError(beast::error_code error) {
+template <class WriteHandler>
+void Session::SendMessage(const nlohmann::json &payload, Opcode opcode,
+                          WriteHandler &&handler) {
+  nlohmann::json message;
+  message["op"] = (int)opcode;
+  message["d"] = payload;
+  websocket_.async_write(net::buffer(message.dump()), handler);
+}
+
+void Session::SendMessage(nlohmann::json payload, Opcode opcode) {
+  SendMessage(payload, opcode,
+              [this](beast::error_code const &ec,
+                     std::size_t bytes_transferred) { OnError(ec); });
+}
+
+void Session::OnError(beast::error_code error, std::size_t bytes_transferred) {
+  AURORA_UNUSED(bytes_transferred);
   if (!error) return;
   // TODO: Reconnect
   std::cerr << "Closing connection due to internal error.\n";
@@ -121,12 +143,12 @@ void Session::OnError(beast::error_code error) {
   std::cerr << "Error code: " << error.value() << "\n";
 
   Disconnect(websocket::close_code(4000));
-  throw;
 }
 
 void Session::OnHello(int heartbeat_interval) {
   heartbeat_interval_ = heartbeat_interval;
   HeartbeatTask();
+  Identify();
 }
 
 void Session::HeartbeatTask() {
@@ -147,11 +169,8 @@ void Session::SendHeartbeat() {
     Disconnect(websocket::close_code(4000));
     return;
   }
-  nlohmann::json payload;
-  payload["op"] = 1;
-  payload["d"] = last_sequence_;
-  websocket_.async_write(
-      net::buffer(payload.dump()),
+  SendMessage(
+      last_sequence_, Opcode::kHeartbeat,
       [this](beast::error_code const &ec, std::size_t bytes_transferred) {
         did_ack_heartbeat_ = false;
         if (ec) {
@@ -160,6 +179,25 @@ void Session::SendHeartbeat() {
           HeartbeatTask();
         }
       });
+}
+
+void Session::Identify() {
+  nlohmann::json payload = R"(
+  {
+    "token": "token_here",
+    "properties": {
+      "$os": "linux",
+      "$browser": "Aurora",
+      "$device": "Aurora"
+    },
+    "intents": 0
+  }
+)"_json;
+  payload["token"] = token_;
+  payload["intents"] = intents_;
+  SendMessage(payload, Opcode::kIdentify,
+              [this](beast::error_code const &ec,
+                     std::size_t bytes_transferred) { OnError(ec); });
 }
 
 }  // namespace gateway

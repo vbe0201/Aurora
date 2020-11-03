@@ -23,15 +23,16 @@
 #ifndef AURORA_GATEWAY_GATEWAY_H_
 #define AURORA_GATEWAY_GATEWAY_H_
 
-#include <memory>
-
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
+#include <memory>
+#include <nlohmann/json.hpp>
 
 #include "common/defines.h"
+#include "protocol.h"
 
 namespace aurora {
 namespace gateway {
@@ -68,7 +69,7 @@ class Session : public std::enable_shared_from_this<Session> {
    * @param hostname The hostname to resolve.
    * @param port The port to use. If unsure, leave the default value.
    */
-  void Connect(std::string& hostname, const std::string& port = "443");
+  void Connect(std::string token, std::string& hostname, const std::string& port = "443");
 
   /**
    * @brief Closes an active WebSocket connection.
@@ -76,7 +77,24 @@ class Session : public std::enable_shared_from_this<Session> {
    */
   void Disconnect(const websocket::close_code& code);
 
+  /**
+   * @brief Start receiving certain gateway events
+   * @param intents Intent(s) category to subscribe to
+   */
+  void SubscribeTo(uint16_t intent);
+
+  /**
+   * @brief Stop receiving certain gateway events
+   * @param intents Intent(s) category to unsubscribe from
+   */
+  void UnsubscribeFrom(uint16_t intent);
+
  private:
+  // User specific member variables
+  std::uint16_t intents_;
+  std::string token_;
+
+  // Internal variables
   net::ip::tcp::resolver resolver_;
   websocket::stream<beast::ssl_stream<net::ip::tcp::socket>> websocket_;
   beast::flat_buffer buffer_;
@@ -96,9 +114,27 @@ class Session : public std::enable_shared_from_this<Session> {
   void OnMessage(beast::error_code error, std::size_t bytes_read);
 
   /**
+   * @brief Sends a message to the gateway using a user specified
+   * handler callback
+   * @param payload The messages payload
+   * @param opcode The message opcode
+   * @param handler The handler to be called after the message was sent
+   */
+  template <class WriteHandler>
+  void SendMessage(const nlohmann::json& payload, Opcode opcode,
+                   WriteHandler&& handler);
+
+  /**
+   * @brief Sends a message to the gateway using a generic handler callback
+   * @param payload The messages payload
+   * @param opcode The message opcode
+   */
+  void SendMessage(nlohmann::json payload, Opcode opcode);
+
+  /**
    * @brief Generic error handler.
    */
-  void OnError(beast::error_code error);
+  void OnError(beast::error_code error, std::size_t bytes_transferred = 0);
 
   /**
    * @brief A callback that is dispatched once the gateway sends the initial
@@ -119,6 +155,11 @@ class Session : public std::enable_shared_from_this<Session> {
    * @brief Sends a generic heartbeat payload
    */
   void SendHeartbeat();
+
+  /**
+   * @brief Sends a generic identify payload
+   */
+  void Identify();
 };
 
 }  // namespace gateway

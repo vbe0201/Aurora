@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * @file opcodes.h
- * @brief Opcodes used by the Discord gateway protocol.
+ * @file protocol.h
+ * @brief Constants used by the Discord gateway protocol.
  * @author Valentin B.
  */
 
-#ifndef AURORA_GATEWAY_OPCODES_H_
-#define AURORA_GATEWAY_OPCODES_H_
+#ifndef AURORA_GATEWAY_PROTOCOL_H_
+#define AURORA_GATEWAY_PROTOCOL_H_
 
 /**
  * Opcodes used for communication with the Discord WebSocket gateway.
@@ -76,4 +76,25 @@ enum class Opcode {
   kStreamSetPaused = 22,
 };
 
-#endif  // AURORA_GATEWAY_OPCODES_H_
+/**
+ * Intents acting like subscriptions to the Discord WebSocket gateway
+ */
+enum Intent : std::uint16_t {
+    GUILDS = (1u << 0u),
+    GUILD_MEMBERS = (1u << 1u),
+    GUILD_BANS = (1u << 2u),
+    GUILD_EMOJIS = (1u << 3u),
+    GUILD_INTEGRATIONS = (1u << 4u),
+    GUILD_WEBHOOKS = (1u << 5u),
+    GUILD_INVITES = (1u << 6u),
+    GUILD_VOICE_STATES = (1u << 7u),
+    GUILD_PRESENCES = (1u << 8u),
+    GUILD_MESSAGES = (1u << 9u),
+    GUILD_MESSAGE_REACTIONS = (1u << 10u),
+    GUILD_MESSAGE_TYPING = (1u << 11u),
+    DIRECT_MESSAGES = (1u << 12u),
+    DIRECT_MESSAGE_REACTIONS = (1u << 13u),
+    DIRECT_MESSAGE_TYPING = (1u << 14u),
+};
+
+#endif  // AURORA_GATEWAY_PROTOCOL_H_
