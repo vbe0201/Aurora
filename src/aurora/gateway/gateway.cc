@@ -182,19 +182,11 @@ void Session::SendHeartbeat() {
 }
 
 void Session::Identify() {
-  nlohmann::json payload = R"(
-  {
-    "token": "token_here",
-    "properties": {
-      "$os": "linux",
-      "$browser": "Aurora",
-      "$device": "Aurora"
-    },
-    "intents": 0
-  }
-)"_json;
-  payload["token"] = token_;
-  payload["intents"] = intents_;
+  nlohmann::json payload = {
+      {"token", token_},
+      {"intents", intents_},
+      {"properties",
+       {{"$os", "linux"}, {"$browser", "Aurora"}, {"$device", "Aurora"}}}};
   SendMessage(payload, Opcode::kIdentify,
               [this](beast::error_code const &ec,
                      std::size_t bytes_transferred) { OnError(ec); });
