@@ -80,8 +80,9 @@ class Session : public std::enable_shared_from_this<Session> {
   net::ip::tcp::resolver resolver_;
   websocket::stream<beast::ssl_stream<net::ip::tcp::socket>> websocket_;
   beast::flat_buffer buffer_;
-  boost::asio::io_context &io_;
+  boost::asio::steady_timer heartbeat_timer_;
   int heartbeat_interval_;
+  int last_sequence_;
   bool did_ack_heartbeat_ = true;
 
   /**
@@ -110,14 +111,14 @@ class Session : public std::enable_shared_from_this<Session> {
   void OnHello(int heartbeat_interval);
 
   /**
-   * @brief Send a generic heartbeat payload
-   */
-  void SendHeartbeat();
-
-  /**
    * @brief Automatically sends a heartbeat in regular intervals
    */
   void HeartbeatTask();
+
+  /**
+   * @brief Sends a generic heartbeat payload
+   */
+  void SendHeartbeat();
 };
 
 }  // namespace gateway
