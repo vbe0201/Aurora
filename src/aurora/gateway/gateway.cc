@@ -19,13 +19,16 @@
 #include <string>
 #include <utility>
 
+#define ZLIB_SUFFIX "\x00\x00\xff\xff"
+
 namespace aurora {
 namespace gateway {
 
-Session::Session(net::io_context &io, net::ssl::context &ssl)
+Session::Session(net::io_context &io, net::ssl::context &ssl, bool compress)
     : resolver_(net::make_strand(io)),
       websocket_(net::make_strand(io), ssl),
-      heartbeat_timer_(io) {}
+      heartbeat_timer_(io),
+      compress_(compress) {}
 
 Session::~Session() {
   try {
@@ -90,15 +93,22 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
     OnError(error);
   }
 
-  // TODO: Validate and uncompress zlib data.
+  if (compress_) {
+    if (buffer_.size() >= 4) {
+      uint8_t *last_four_bytes = (uint8_t *)buffer_.data().data();
+      last_four_bytes += buffer_.size() - 5;
+      if (memcmp(last_four_bytes, ZLIB_SUFFIX, 4) != 0) {
+        // TODO: actually do the decompression part
+      }
+    }
+  }
 
   // TODO: Unpack Erlang Term Format message.
   nlohmann::json payload = [this]() {
     std::ostringstream stream;
     stream << beast::make_printable(buffer_.data());
 
-    std::string s = stream.str();
-    return nlohmann::json::parse(s);
+    return nlohmann::json::parse(stream.str());
   }();
 
   std::cout << payload << std::endl;
@@ -186,7 +196,10 @@ void Session::Identify() {
       {"token", token_},
       {"intents", intents_},
       {"properties",
-       {{"$os", "linux"}, {"$browser", "Aurora"}, {"$device", "Aurora"}}}};
+       {{"$os", "linux"}, {"$browser", "Aurora"}, {"$device", "Aurora"}}
+      },
+      {"compress", compress_}
+  };
   SendMessage(payload, Opcode::kIdentify,
               [this](beast::error_code const &ec,
                      std::size_t bytes_transferred) { OnError(ec); });

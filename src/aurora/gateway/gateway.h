@@ -57,7 +57,7 @@ namespace websocket = beast::websocket;
  */
 class Session : public std::enable_shared_from_this<Session> {
  public:
-  explicit Session(net::io_context& io, net::ssl::context& ssl);
+  explicit Session(net::io_context& io, net::ssl::context& ssl, bool compress = false);
 
   ~Session();
 
@@ -102,6 +102,7 @@ class Session : public std::enable_shared_from_this<Session> {
   int heartbeat_interval_;
   int last_sequence_;
   bool did_ack_heartbeat_ = true;
+  bool compress_;
 
   /**
    * @brief A callback that is dispatched when a message has been received from
