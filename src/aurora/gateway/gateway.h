@@ -106,7 +106,7 @@ class Session : public std::enable_shared_from_this<Session> {
   boost::asio::steady_timer heartbeat_timer_;
   int heartbeat_interval_, last_sequence_;
   bool did_ack_heartbeat_ = true, compress_;
-  std::string session_id_;
+  std::string session_id_, hostname_, port_;
 
   /**
    * @brief A callback that is dispatched when a message has been received from

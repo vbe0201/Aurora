@@ -40,6 +40,8 @@ Session::~Session() {
 void Session::Connect(std::string token, std::string &hostname,
                       const std::string &port) {
   token_ = std::move(token);
+  hostname_ = hostname;
+  port_ = port;
   // Resolve the supplied host and connect to it.
   const auto results = resolver_.resolve(hostname, port);
   auto endpoint = net::connect(beast::get_lowest_layer(websocket_), results);
@@ -181,7 +183,11 @@ void Session::OnDispatch(nlohmann::json data) {
   // TODO: Dispatch event to handlers
 }
 
-void Session::OnReconnect(nlohmann::json data) {}
+void Session::OnReconnect(nlohmann::json data) {
+  // Discords invalidates sessions closed with exit code 1000/10001
+  Disconnect(websocket::close_code(2000));
+  Resume();
+}
 
 void Session::OnInvalidSession(nlohmann::json data) {}
 
@@ -233,7 +239,16 @@ void Session::Identify() {
                      std::size_t bytes_transferred) { OnError(ec); });
 }
 void Session::Resume() {
-
+  // TODO: check if this works
+  if (websocket_.is_open()) return;
+  if (session_id_.empty()) {
+    std::cerr << "Attempted resume without knowing session id\n";
+    return;
+  }
+  nlohmann::json payload{
+      {"token", token_}, {"session_id", session_id_}, {"seq", last_sequence_}};
+  Connect(token_, hostname_, port_);
+  SendMessage(payload, Opcode::kResume);
 }
 
 }  // namespace gateway
