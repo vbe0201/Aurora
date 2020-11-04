@@ -88,10 +88,7 @@ void Session::UnsubscribeFrom(uint16_t intents) { intents_ &= ~intents; }
 void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
   AURORA_UNUSED(bytes_read);
 
-  // TODO: Handle errors accordingly.
-  if (error) {
-    OnError(error);
-  }
+  OnError(error);
 
   if (compress_) {
     if (buffer_.size() >= 4) {
@@ -113,20 +110,41 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
 
   std::cout << payload << std::endl;
 
-  // TODO: Handle the received opcode accordingly.
-  //       Maybe do this using a map!
-  if (payload["op"] == 0) {
+  Opcode op = payload["op"];
+  nlohmann::json data = payload["d"];
+
+  if (op == Opcode::kDispatch) {
     last_sequence_ = payload["s"];
-  } else if (payload["op"] == 10) {
-    OnHello(payload["d"]["heartbeat_interval"]);
-  } else if (payload["op"] == 11) {
-    did_ack_heartbeat_ = true;
+    data.emplace("t", payload["t"]);
+  }
+
+  switch (op) {
+    case Opcode::kDispatch:
+      OnDispatch(data);
+      break;
+    case Opcode::kReconnect:
+      OnReconnect(data);
+      break;
+    case Opcode::kInvalidSession:
+      OnInvalidSession(data);
+      break;
+    case Opcode::kHello:
+      OnHello(data);
+      break;
+    case Opcode::kHeartbeatAck:
+      OnHeartbeatAck(data);
+      break;
+    default:
+      std::cerr << "Invalid opcode received\n";
+      Disconnect(websocket::close_code(4000));
   }
 
   // Clean the buffer and continue listening for more messages.
   buffer_.clear();
-  websocket_.async_read(buffer_, beast::bind_front_handler(&Session::OnMessage,
-                                                           shared_from_this()));
+  if (websocket_.is_open())
+    websocket_.async_read(
+        buffer_,
+        beast::bind_front_handler(&Session::OnMessage, shared_from_this()));
 }
 
 template <class WriteHandler>
@@ -155,19 +173,32 @@ void Session::OnError(beast::error_code error, std::size_t bytes_transferred) {
   Disconnect(websocket::close_code(4000));
 }
 
-void Session::OnHello(int heartbeat_interval) {
-  heartbeat_interval_ = heartbeat_interval;
+void Session::OnDispatch(nlohmann::json data) {
+  std::string event_id = data["t"];
+  if (event_id == "READY") {
+    session_id_ = data["session_id"];
+  }
+  // TODO: Dispatch event to handlers
+}
+
+void Session::OnReconnect(nlohmann::json data) {}
+
+void Session::OnInvalidSession(nlohmann::json data) {}
+
+void Session::OnHello(nlohmann::json data) {
+  heartbeat_interval_ = data["heartbeat_interval"];
   HeartbeatTask();
   Identify();
 }
+
+void Session::OnHeartbeatAck(nlohmann::json data) { did_ack_heartbeat_ = true; }
 
 void Session::HeartbeatTask() {
   heartbeat_timer_.expires_from_now(
       std::chrono::milliseconds(heartbeat_interval_));
   heartbeat_timer_.async_wait([this](const boost::system::error_code &error) {
-    if (error) {
-      OnError(error);
-    } else if (websocket_.is_open()) {
+    OnError(error);
+    if (websocket_.is_open()) {
       SendHeartbeat();
     }
   });
@@ -183,9 +214,8 @@ void Session::SendHeartbeat() {
       last_sequence_, Opcode::kHeartbeat,
       [this](beast::error_code const &ec, std::size_t bytes_transferred) {
         did_ack_heartbeat_ = false;
-        if (ec) {
-          OnError(ec);
-        } else if (websocket_.is_open()) {
+        OnError(ec);
+        if (websocket_.is_open()) {
           HeartbeatTask();
         }
       });
@@ -196,13 +226,14 @@ void Session::Identify() {
       {"token", token_},
       {"intents", intents_},
       {"properties",
-       {{"$os", "linux"}, {"$browser", "Aurora"}, {"$device", "Aurora"}}
-      },
-      {"compress", compress_}
-  };
+       {{"$os", "linux"}, {"$browser", "Aurora"}, {"$device", "Aurora"}}},
+      {"compress", compress_}};
   SendMessage(payload, Opcode::kIdentify,
               [this](beast::error_code const &ec,
                      std::size_t bytes_transferred) { OnError(ec); });
+}
+void Session::Resume() {
+
 }
 
 }  // namespace gateway

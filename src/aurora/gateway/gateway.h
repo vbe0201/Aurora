@@ -28,8 +28,10 @@
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
-#include <memory>
 #include <nlohmann/json.hpp>
+
+#include <memory>
+#include <functional>
 
 #include "common/defines.h"
 #include "protocol.h"
@@ -57,7 +59,8 @@ namespace websocket = beast::websocket;
  */
 class Session : public std::enable_shared_from_this<Session> {
  public:
-  explicit Session(net::io_context& io, net::ssl::context& ssl, bool compress = false);
+  explicit Session(net::io_context& io, net::ssl::context& ssl,
+                   bool compress = false);
 
   ~Session();
 
@@ -69,7 +72,8 @@ class Session : public std::enable_shared_from_this<Session> {
    * @param hostname The hostname to resolve.
    * @param port The port to use. If unsure, leave the default value.
    */
-  void Connect(std::string token, std::string& hostname, const std::string& port = "443");
+  void Connect(std::string token, std::string& hostname,
+               const std::string& port = "443");
 
   /**
    * @brief Closes an active WebSocket connection.
@@ -90,6 +94,7 @@ class Session : public std::enable_shared_from_this<Session> {
   void UnsubscribeFrom(uint16_t intent);
 
  private:
+
   // User specific member variables
   std::uint16_t intents_;
   std::string token_;
@@ -99,10 +104,9 @@ class Session : public std::enable_shared_from_this<Session> {
   websocket::stream<beast::ssl_stream<net::ip::tcp::socket>> websocket_;
   beast::flat_buffer buffer_;
   boost::asio::steady_timer heartbeat_timer_;
-  int heartbeat_interval_;
-  int last_sequence_;
-  bool did_ack_heartbeat_ = true;
-  bool compress_;
+  int heartbeat_interval_, last_sequence_;
+  bool did_ack_heartbeat_ = true, compress_;
+  std::string session_id_;
 
   /**
    * @brief A callback that is dispatched when a message has been received from
@@ -138,14 +142,54 @@ class Session : public std::enable_shared_from_this<Session> {
   void OnError(beast::error_code error, std::size_t bytes_transferred = 0);
 
   /**
-   * @brief A callback that is dispatched once the gateway sends the initial
-   * hello payload
-   * @param heartbeat_interval Time in ms to wait between sending heartbeat
+   * @brief A callback that is dispatched once the gateway sends a dispatch
+   * event
+   * @param data Data sent with the dispatch payload
    * payloads
    *
    * @warning Never call this function manually!
    */
-  void OnHello(int heartbeat_interval);
+  void OnDispatch(nlohmann::json data);
+
+  /**
+   * @brief A callback that is dispatched if the gateway sends a reconnect
+   * event
+   * @param data Data sent with the reconnect payload
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnReconnect(nlohmann::json data);
+
+  /**
+   * @brief A callback that is dispatched if the gateway sends a invalid
+   * session event
+   * @param data Data sent with the invalid session payload
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnInvalidSession(nlohmann::json data);
+
+  /**
+   * @brief A callback that is dispatched once the gateway sends the initial
+   * hello payload
+   * @param data Data sent with the hello payload
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnHello(nlohmann::json data);
+
+  /**
+   * @brief A callback that is dispatched once the gateway sends a heartbeat
+   * acknowledge event
+   * @param data Data sent with the heartbeat ack payload
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnHeartbeatAck(nlohmann::json data);
 
   /**
    * @brief Automatically sends a heartbeat in regular intervals
@@ -161,6 +205,11 @@ class Session : public std::enable_shared_from_this<Session> {
    * @brief Sends a generic identify payload
    */
   void Identify();
+
+  /**
+   * @brief Resumes a previously disconnected session
+   */
+  void Resume();
 };
 
 }  // namespace gateway
