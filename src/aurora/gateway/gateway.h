@@ -118,7 +118,7 @@ class Session : public std::enable_shared_from_this<Session> {
 
   /**
    * @brief Sends a message to the gateway using a user specified
-   * handler callback
+   * handler callback. Always returns immediately.
    * @param payload The messages payload
    * @param opcode The message opcode
    * @param handler The handler to be called after the message was sent
@@ -129,6 +129,7 @@ class Session : public std::enable_shared_from_this<Session> {
 
   /**
    * @brief Sends a message to the gateway using a generic handler callback
+   * Always returns immediately.
    * @param payload The messages payload
    * @param opcode The message opcode
    */
@@ -191,6 +192,7 @@ class Session : public std::enable_shared_from_this<Session> {
 
   /**
    * @brief Automatically sends a heartbeat in regular intervals
+   * Always returns immediately.
    */
   void HeartbeatTask();
 

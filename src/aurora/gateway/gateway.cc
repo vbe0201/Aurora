@@ -94,9 +94,12 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
   OnError(error);
 
   if (compress_) {
+    // zlib compressed messages end with a four byte suffix
     if (buffer_.size() >= 4) {
+      // Get the raw buffer data and increase it to get the last four bytes
       uint8_t *last_four_bytes = (uint8_t *)buffer_.data().data();
       last_four_bytes += buffer_.size() - 5;
+      // Check if the zlib suffix is present
       if (memcmp(last_four_bytes, ZLIB_SUFFIX, 4) != 0) {
         // TODO: actually do the decompression part
       }
@@ -116,11 +119,14 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
   Opcode op = payload["op"];
   nlohmann::json data = payload["d"];
 
+  // Dispatch stores the event name in the t field
+  // And the sequence in the s field
   if (op == Opcode::kDispatch) {
     last_sequence_ = payload["s"];
     data.emplace("t", payload["t"]);
   }
 
+  // Handle message
   switch (op) {
     case Opcode::kDispatch:
       OnDispatch(data);
@@ -153,6 +159,7 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
 template <class WriteHandler>
 void Session::SendMessage(const nlohmann::json &payload, Opcode opcode,
                           WriteHandler &&handler) {
+  // Fill message properly and send
   nlohmann::json message;
   message["op"] = (int)opcode;
   message["d"] = payload;
@@ -168,31 +175,30 @@ void Session::SendMessage(const nlohmann::json &payload, Opcode opcode) {
 void Session::OnError(beast::error_code error, std::size_t bytes_transferred) {
   AURORA_UNUSED(bytes_transferred);
   if (!error) return;
-  // TODO: Reconnect
-  std::cerr << "Closing connection due to internal error.\n";
+
+  // Print error info and reconnect
+  std::cerr << "Reconnection due to internal error.\n";
   std::cerr << "Error message: " << error.message() << "\n";
   std::cerr << "Error code: " << error.value() << "\n";
 
-  Disconnect(websocket::close_code(4000));
+  Resume();
 }
 
 void Session::OnDispatch(nlohmann::json data) {
   std::string event_id = data["t"];
   if (event_id == "READY") {
+    // Session id required for reconnecting
     session_id_ = data["session_id"];
   }
   // TODO: Dispatch event to handlers
 }
 
-void Session::OnReconnect(const nlohmann::json &data) {
-  // Discords invalidates sessions closed with exit code 1000/10001
-  Disconnect(websocket::close_code(2000));
-  Resume();
-}
+void Session::OnReconnect(const nlohmann::json &data) { Resume(); }
 
 void Session::OnInvalidSession(const nlohmann::json &data) {
+  // data is just a boolean that tells whether a reconnect is possible
   if (data.is_boolean() and data == true) {
-    OnReconnect(data);
+    Resume();
   } else {
     std::cerr << "Invalid session is not resumable. ";
     Disconnect(websocket::close_code(4000));
@@ -200,8 +206,11 @@ void Session::OnInvalidSession(const nlohmann::json &data) {
 }
 
 void Session::OnHello(nlohmann::json data) {
+  // Save interval time
   heartbeat_interval_ = data["heartbeat_interval"];
+  // Start heartbeating
   HeartbeatTask();
+  // Identify the client to the gateway
   Identify();
 }
 
@@ -210,8 +219,10 @@ void Session::OnHeartbeatAck(const nlohmann::json &data) {
 }
 
 void Session::HeartbeatTask() {
+  // Set timer to wait however long the gateway wants us to
   heartbeat_timer_.expires_from_now(
       std::chrono::milliseconds(heartbeat_interval_));
+  // Wait and send heartbeat after
   heartbeat_timer_.async_wait([this](const boost::system::error_code &error) {
     OnError(error);
     if (websocket_.is_open()) {
@@ -223,9 +234,11 @@ void Session::HeartbeatTask() {
 void Session::SendHeartbeat() {
   if (!did_ack_heartbeat_) {
     std::cerr << "Zombied connection. ";
+    // TODO: Reconnect or re-identify here
     Disconnect(websocket::close_code(4000));
     return;
   }
+  // Send heartbeat and go back to heartbeat task after
   SendMessage(
       last_sequence_, Opcode::kHeartbeat,
       [this](beast::error_code const &ec, std::size_t bytes_transferred) {
@@ -238,6 +251,7 @@ void Session::SendHeartbeat() {
 }
 
 void Session::Identify() {
+  // TODO: Send proper os information
   nlohmann::json payload = {
       {"token", token_},
       {"intents", intents_},
@@ -251,11 +265,15 @@ void Session::Identify() {
 
 void Session::Resume() {
   // TODO: check if this works
-  if (websocket_.is_open()) return;
+  if (websocket_.is_open())
+    // TODO: Reconnect or re-identify here
+    // Discords invalidates sessions closed with exit code 1000/10001
+    websocket_.close(websocket::close_code(2000));
   if (session_id_.empty()) {
     std::cerr << "Attempted resume without knowing session id\n";
     return;
   }
+  // Fill payload, connect and send resume payload
   nlohmann::json payload{
       {"token", token_}, {"session_id", session_id_}, {"seq", last_sequence_}};
   Connect(token_, hostname_, port_);
