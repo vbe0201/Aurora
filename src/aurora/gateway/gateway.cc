@@ -79,6 +79,7 @@ void Session::Connect(std::string token, std::string &hostname,
 
 void Session::Disconnect(const websocket::close_code &code) {
   if (websocket_.is_open()) {
+    std::cerr << "Closing...\n";
     websocket_.close(code);
   }
 }
@@ -158,7 +159,7 @@ void Session::SendMessage(const nlohmann::json &payload, Opcode opcode,
   websocket_.async_write(net::buffer(message.dump()), handler);
 }
 
-void Session::SendMessage(nlohmann::json payload, Opcode opcode) {
+void Session::SendMessage(const nlohmann::json &payload, Opcode opcode) {
   SendMessage(payload, opcode,
               [this](beast::error_code const &ec,
                      std::size_t bytes_transferred) { OnError(ec); });
@@ -183,13 +184,20 @@ void Session::OnDispatch(nlohmann::json data) {
   // TODO: Dispatch event to handlers
 }
 
-void Session::OnReconnect(nlohmann::json data) {
+void Session::OnReconnect(const nlohmann::json &data) {
   // Discords invalidates sessions closed with exit code 1000/10001
   Disconnect(websocket::close_code(2000));
   Resume();
 }
 
-void Session::OnInvalidSession(nlohmann::json data) {}
+void Session::OnInvalidSession(const nlohmann::json &data) {
+  if (data.is_boolean() and data == true) {
+    OnReconnect(data);
+  } else {
+    std::cerr << "Invalid session is not resumable. ";
+    Disconnect(websocket::close_code(4000));
+  }
+}
 
 void Session::OnHello(nlohmann::json data) {
   heartbeat_interval_ = data["heartbeat_interval"];
@@ -197,7 +205,9 @@ void Session::OnHello(nlohmann::json data) {
   Identify();
 }
 
-void Session::OnHeartbeatAck(nlohmann::json data) { did_ack_heartbeat_ = true; }
+void Session::OnHeartbeatAck(const nlohmann::json &data) {
+  did_ack_heartbeat_ = true;
+}
 
 void Session::HeartbeatTask() {
   heartbeat_timer_.expires_from_now(
@@ -212,7 +222,7 @@ void Session::HeartbeatTask() {
 
 void Session::SendHeartbeat() {
   if (!did_ack_heartbeat_) {
-    std::cerr << "Closing zombied connection";
+    std::cerr << "Zombied connection. ";
     Disconnect(websocket::close_code(4000));
     return;
   }
@@ -238,6 +248,7 @@ void Session::Identify() {
               [this](beast::error_code const &ec,
                      std::size_t bytes_transferred) { OnError(ec); });
 }
+
 void Session::Resume() {
   // TODO: check if this works
   if (websocket_.is_open()) return;

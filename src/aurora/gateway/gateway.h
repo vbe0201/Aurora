@@ -28,10 +28,9 @@
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
-#include <nlohmann/json.hpp>
-
-#include <memory>
 #include <functional>
+#include <memory>
+#include <nlohmann/json.hpp>
 
 #include "common/defines.h"
 #include "protocol.h"
@@ -94,9 +93,8 @@ class Session : public std::enable_shared_from_this<Session> {
   void UnsubscribeFrom(uint16_t intent);
 
  private:
-
   // User specific member variables
-  std::uint16_t intents_;
+  std::uint16_t intents_ = 0;
   std::string token_;
 
   // Internal variables
@@ -104,7 +102,7 @@ class Session : public std::enable_shared_from_this<Session> {
   websocket::stream<beast::ssl_stream<net::ip::tcp::socket>> websocket_;
   beast::flat_buffer buffer_;
   boost::asio::steady_timer heartbeat_timer_;
-  int heartbeat_interval_, last_sequence_;
+  int heartbeat_interval_ = 0, last_sequence_ = 0;
   bool did_ack_heartbeat_ = true, compress_;
   std::string session_id_, hostname_, port_;
 
@@ -134,7 +132,7 @@ class Session : public std::enable_shared_from_this<Session> {
    * @param payload The messages payload
    * @param opcode The message opcode
    */
-  void SendMessage(nlohmann::json payload, Opcode opcode);
+  void SendMessage(const nlohmann::json& payload, Opcode opcode);
 
   /**
    * @brief Generic error handler.
@@ -159,7 +157,7 @@ class Session : public std::enable_shared_from_this<Session> {
    *
    * @warning Never call this function manually!
    */
-  void OnReconnect(nlohmann::json data);
+  void OnReconnect(const nlohmann::json& data);
 
   /**
    * @brief A callback that is dispatched if the gateway sends a invalid
@@ -169,7 +167,7 @@ class Session : public std::enable_shared_from_this<Session> {
    *
    * @warning Never call this function manually!
    */
-  void OnInvalidSession(nlohmann::json data);
+  void OnInvalidSession(const nlohmann::json& data);
 
   /**
    * @brief A callback that is dispatched once the gateway sends the initial
@@ -189,7 +187,7 @@ class Session : public std::enable_shared_from_this<Session> {
    *
    * @warning Never call this function manually!
    */
-  void OnHeartbeatAck(nlohmann::json data);
+  void OnHeartbeatAck(const nlohmann::json& data);
 
   /**
    * @brief Automatically sends a heartbeat in regular intervals
