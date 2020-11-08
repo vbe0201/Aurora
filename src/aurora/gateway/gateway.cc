@@ -19,7 +19,7 @@
 #include <string>
 #include <utility>
 
-#define ZLIB_SUFFIX "\x00\x00\xff\xff"
+#include "common/assert.h"
 
 namespace aurora {
 namespace gateway {
@@ -89,6 +89,7 @@ void Session::SubscribeTo(uint16_t intents) { intents_ |= intents; }
 void Session::UnsubscribeFrom(uint16_t intents) { intents_ &= ~intents; }
 
 void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
+#define ZLIB_SUFFIX "\x00\x00\xff\xff"
   AURORA_UNUSED(bytes_read);
 
   OnError(error);
@@ -144,8 +145,7 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
       OnHeartbeatAck(data);
       break;
     default:
-      std::cerr << "Invalid opcode received\n";
-      Disconnect(websocket::close_code(4000));
+      AURORA_UNREACHABLE()
   }
 
   // Clean the buffer and continue listening for more messages.
@@ -154,6 +154,7 @@ void Session::OnMessage(beast::error_code error, std::size_t bytes_read) {
     websocket_.async_read(
         buffer_,
         beast::bind_front_handler(&Session::OnMessage, shared_from_this()));
+#undef ZLIB_SUFFIX
 }
 
 template <class WriteHandler>

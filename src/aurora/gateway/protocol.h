@@ -79,7 +79,7 @@ enum class Opcode {
 /**
  * Intents acting like subscriptions to the Discord WebSocket gateway
  */
-enum Intent : std::uint16_t {
+enum class Intent : std::uint16_t {
     GUILDS = (1u << 0u),
     GUILD_MEMBERS = (1u << 1u),
     GUILD_BANS = (1u << 2u),

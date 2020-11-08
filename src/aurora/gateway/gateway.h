@@ -84,13 +84,13 @@ class Session : public std::enable_shared_from_this<Session> {
    * @brief Start receiving certain gateway events
    * @param intents Intent(s) category to subscribe to
    */
-  void SubscribeTo(uint16_t intent);
+  void SubscribeTo(uint16_t intents);
 
   /**
    * @brief Stop receiving certain gateway events
    * @param intents Intent(s) category to unsubscribe from
    */
-  void UnsubscribeFrom(uint16_t intent);
+  void UnsubscribeFrom(uint16_t intents);
 
  private:
   // User specific member variables
