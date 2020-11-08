@@ -20,7 +20,9 @@ int main(int argc, char** argv) {
   boost::asio::ssl::context ssl{boost::asio::ssl::context::tlsv13_client};
 
   std::string host = "gateway.discord.gg";
-  std::make_shared<aurora::gateway::Session>(ctx, ssl)->Connect(host);
+  std::shared_ptr<aurora::gateway::Session> session = std::make_shared<aurora::gateway::Session>(ctx, ssl);
+  session->SubscribeTo(GUILDS | GUILD_MESSAGES);
+  session->Connect(getenv("AURORA_TOKEN"), host);
 
   ctx.run();
 

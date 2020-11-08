@@ -23,15 +23,17 @@
 #ifndef AURORA_GATEWAY_GATEWAY_H_
 #define AURORA_GATEWAY_GATEWAY_H_
 
-#include <memory>
-
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
+#include <functional>
+#include <memory>
+#include <nlohmann/json.hpp>
 
 #include "common/defines.h"
+#include "protocol.h"
 
 namespace aurora {
 namespace gateway {
@@ -56,7 +58,8 @@ namespace websocket = beast::websocket;
  */
 class Session : public std::enable_shared_from_this<Session> {
  public:
-  explicit Session(net::io_context& io, net::ssl::context& ssl);
+  explicit Session(net::io_context& io, net::ssl::context& ssl,
+                   bool compress = false);
 
   ~Session();
 
@@ -68,7 +71,8 @@ class Session : public std::enable_shared_from_this<Session> {
    * @param hostname The hostname to resolve.
    * @param port The port to use. If unsure, leave the default value.
    */
-  void Connect(std::string& hostname, const std::string& port = "443");
+  void Connect(std::string token, std::string& hostname,
+               const std::string& port = "443");
 
   /**
    * @brief Closes an active WebSocket connection.
@@ -76,10 +80,31 @@ class Session : public std::enable_shared_from_this<Session> {
    */
   void Disconnect(const websocket::close_code& code);
 
+  /**
+   * @brief Start receiving certain gateway events
+   * @param intents Intent(s) category to subscribe to
+   */
+  void SubscribeTo(uint16_t intents);
+
+  /**
+   * @brief Stop receiving certain gateway events
+   * @param intents Intent(s) category to unsubscribe from
+   */
+  void UnsubscribeFrom(uint16_t intents);
+
  private:
+  // User specific member variables
+  std::uint16_t intents_ = 0;
+  std::string token_;
+
+  // Internal variables
   net::ip::tcp::resolver resolver_;
   websocket::stream<beast::ssl_stream<net::ip::tcp::socket>> websocket_;
   beast::flat_buffer buffer_;
+  boost::asio::steady_timer heartbeat_timer_;
+  int heartbeat_interval_ = 0, last_sequence_ = 0;
+  bool did_ack_heartbeat_ = true, compress_;
+  std::string session_id_, hostname_, port_;
 
   /**
    * @brief A callback that is dispatched when a message has been received from
@@ -90,6 +115,101 @@ class Session : public std::enable_shared_from_this<Session> {
    * @warning Never call this function manually!
    */
   void OnMessage(beast::error_code error, std::size_t bytes_read);
+
+  /**
+   * @brief Sends a message to the gateway using a user specified
+   * handler callback. Always returns immediately.
+   * @param payload The messages payload
+   * @param opcode The message opcode
+   * @param handler The handler to be called after the message was sent
+   */
+  template <class WriteHandler>
+  void SendMessage(const nlohmann::json& payload, Opcode opcode,
+                   WriteHandler&& handler);
+
+  /**
+   * @brief Sends a message to the gateway using a generic handler callback
+   * Always returns immediately.
+   * @param payload The messages payload
+   * @param opcode The message opcode
+   */
+  void SendMessage(const nlohmann::json& payload, Opcode opcode);
+
+  /**
+   * @brief Generic error handler.
+   */
+  void OnError(beast::error_code error, std::size_t bytes_transferred = 0);
+
+  /**
+   * @brief A callback that is dispatched once the gateway sends a dispatch
+   * event
+   * @param data Data sent with the dispatch payload
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnDispatch(nlohmann::json data);
+
+  /**
+   * @brief A callback that is dispatched if the gateway sends a reconnect
+   * event
+   * @param data Data sent with the reconnect payload
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnReconnect(const nlohmann::json& data);
+
+  /**
+   * @brief A callback that is dispatched if the gateway sends a invalid
+   * session event
+   * @param data Data sent with the invalid session payload
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnInvalidSession(const nlohmann::json& data);
+
+  /**
+   * @brief A callback that is dispatched once the gateway sends the initial
+   * hello payload
+   * @param data Data sent with the hello payload
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnHello(nlohmann::json data);
+
+  /**
+   * @brief A callback that is dispatched once the gateway sends a heartbeat
+   * acknowledge event
+   * @param data Data sent with the heartbeat ack payload
+   * payloads
+   *
+   * @warning Never call this function manually!
+   */
+  void OnHeartbeatAck(const nlohmann::json& data);
+
+  /**
+   * @brief Automatically sends a heartbeat in regular intervals
+   * Always returns immediately.
+   */
+  void HeartbeatTask();
+
+  /**
+   * @brief Sends a generic heartbeat payload
+   */
+  void SendHeartbeat();
+
+  /**
+   * @brief Sends a generic identify payload
+   */
+  void Identify();
+
+  /**
+   * @brief Resumes a previously disconnected session
+   */
+  void Resume();
 };
 
 }  // namespace gateway
