@@ -78,5 +78,6 @@ endif()
 ####################
 
 add_subdirectory(client)
-add_subdirectory(common)
+# Common is only included
+#add_subdirectory(common)
 add_subdirectory(gateway)

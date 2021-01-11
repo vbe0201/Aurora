@@ -22,10 +22,21 @@
 #ifndef AURORA_COMMON_ASSERT_H_
 #define AURORA_COMMON_ASSERT_H_
 
+#include <cstdlib>
+#include <iostream>
+#include <sstream>
+
 #include "defines.h"
+
+// TODO: Implement proper logging.
 
 namespace aurora {
 namespace common {
+
+template <typename Arg>
+void write_args(std::ostream &os, Arg arg) {
+  os << arg;
+}
 
 /**
  * @brief A helper function that is called when an assertion in Aurora fails.
@@ -35,13 +46,26 @@ namespace common {
  * @param func The function in which the assertion took place.
  * @param expr The expression that was asserted.
  * @param args Variable arguments for custom and more verbose log messages.
+ * @note The function is defined in this header file because templated functions
+ * are only generated when they are actually needed.
  */
 template <typename... Args>
 AURORA_NORETURN AURORA_NEVER_INLINE void assert_fail_impl(const char *file,
                                                           int line,
                                                           const char *func,
                                                           const char *expr,
-                                                          Args... args);
+                                                          Args... args) {
+  // Write all variadic arguments to the string stream.
+  std::ostringstream oss;
+  write_args(oss, args...);
+
+  std::cout << "Assertion Failure: " << oss.str() << "\n";
+  std::cout << "Location:   " << file << ":" << line << "\n";
+  std::cout << "Function:   " << func << "\n";
+  std::cout << "Expression: " << expr << "\n";
+
+  std::abort();
+}
 
 }  // namespace common
 }  // namespace aurora
@@ -60,7 +84,7 @@ AURORA_NORETURN AURORA_NEVER_INLINE void assert_fail_impl(const char *file,
 #define AURORA_ASSERT_IMPL(_EXPR, ...)                        \
   {                                                           \
     if (const bool __assert_value = static_cast<bool>(_EXPR); \
-        AURORA_UNLIKELY(__assert_value)) {                   \
+        AURORA_UNLIKELY(__assert_value)) {                    \
       AURORA_CALL_ASSERT_FAIL_IMPL(#_EXPR, ##__VA_ARGS__);    \
     }                                                         \
   }

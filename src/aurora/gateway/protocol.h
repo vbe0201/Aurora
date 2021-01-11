@@ -78,23 +78,24 @@ enum class Opcode {
 
 /**
  * Intents acting like subscriptions to the Discord WebSocket gateway
+ * @note This is not an `enum class` for casting convenience with bitwise operators
  */
-enum class Intent : std::uint16_t {
-    GUILDS = (1u << 0u),
-    GUILD_MEMBERS = (1u << 1u),
-    GUILD_BANS = (1u << 2u),
-    GUILD_EMOJIS = (1u << 3u),
-    GUILD_INTEGRATIONS = (1u << 4u),
-    GUILD_WEBHOOKS = (1u << 5u),
-    GUILD_INVITES = (1u << 6u),
-    GUILD_VOICE_STATES = (1u << 7u),
-    GUILD_PRESENCES = (1u << 8u),
-    GUILD_MESSAGES = (1u << 9u),
-    GUILD_MESSAGE_REACTIONS = (1u << 10u),
-    GUILD_MESSAGE_TYPING = (1u << 11u),
-    DIRECT_MESSAGES = (1u << 12u),
-    DIRECT_MESSAGE_REACTIONS = (1u << 13u),
-    DIRECT_MESSAGE_TYPING = (1u << 14u),
+enum Intent : std::uint16_t {
+  GUILDS = (1u << 0u),
+  GUILD_MEMBERS = (1u << 1u),
+  GUILD_BANS = (1u << 2u),
+  GUILD_EMOJIS = (1u << 3u),
+  GUILD_INTEGRATIONS = (1u << 4u),
+  GUILD_WEBHOOKS = (1u << 5u),
+  GUILD_INVITES = (1u << 6u),
+  GUILD_VOICE_STATES = (1u << 7u),
+  GUILD_PRESENCES = (1u << 8u),
+  GUILD_MESSAGES = (1u << 9u),
+  GUILD_MESSAGE_REACTIONS = (1u << 10u),
+  GUILD_MESSAGE_TYPING = (1u << 11u),
+  DIRECT_MESSAGES = (1u << 12u),
+  DIRECT_MESSAGE_REACTIONS = (1u << 13u),
+  DIRECT_MESSAGE_TYPING = (1u << 14u),
 };
 
 #endif  // AURORA_GATEWAY_PROTOCOL_H_
