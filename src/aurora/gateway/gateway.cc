@@ -201,7 +201,7 @@ void Session::OnInvalidSession(const nlohmann::json &data) {
   if (data.is_boolean() and data == true) {
     Resume();
   } else {
-    std::cerr << "Invalid session is not resumable. ";
+    std::cerr << "The gateway closed the session without the option to reconnect. ";
     Disconnect(websocket::close_code(4000));
   }
 }
@@ -234,7 +234,7 @@ void Session::HeartbeatTask() {
 
 void Session::SendHeartbeat() {
   if (!did_ack_heartbeat_) {
-    std::cerr << "Zombied connection. ";
+    std::cerr << "Gateway didn't acknowledge heartbeat (zombied). ";
     // TODO: Reconnect or re-identify here
     Disconnect(websocket::close_code(4000));
     return;
@@ -271,7 +271,7 @@ void Session::Resume() {
     // Discords invalidates sessions closed with exit code 1000/10001
     websocket_.close(websocket::close_code(2000));
   if (session_id_.empty()) {
-    std::cerr << "Attempted resume without knowing session id\n";
+    std::cerr << "Attempted resume before knowing session id\n";
     return;
   }
   // Fill payload, connect and send resume payload

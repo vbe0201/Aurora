@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
 
   std::string host = "gateway.discord.gg";
   std::shared_ptr<aurora::gateway::Session> session = std::make_shared<aurora::gateway::Session>(ctx, ssl);
-  session->SubscribeTo(GUILDS | GUILD_MESSAGES);
+  session->SubscribeTo(Intent::GUILDS | Intent::GUILD_MESSAGES);
   session->Connect(getenv("AURORA_TOKEN"), host);
 
   ctx.run();
